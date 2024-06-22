@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Original or Fake Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e1e1e, #3d3d3d);
+            color: #fff;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            text-align: center;
+        }
+        .container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .instructions {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .card {
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #2a2a2a;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.5s, opacity 0.5s;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .notification {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            color: #fff;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            font-size: 1.2rem;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .chart-button {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 15px;
+            margin: 0 10px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: #fff;
+            background-color: #444;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 400;
+            max-width: 150px;
+        }
+        button.original:hover {
+            background-color: green;
+        }
+        button.fake:hover {
+            background-color: red;
+        }
+        img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+        }
+        .footer {
+            width: 100%;
+            padding: 20px;
+            background-color: #333;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            position: absolute;
+            bottom: 0;
+        }
+        .footer-center {
+            flex: 1;
+            text-align: center;
+        }
+        .footer-links {
+            position: absolute;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .footer-links a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: #ddd;
+        }
+        .statistics-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .chart-container {
+            width: 400px;
+            height: 400px;
+        }
+        .back-button {
+            margin-top: 50px;
+        }
+        .back-button:hover {
+            background-color: #555;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+    <div class="container">
+        <div class="title">Original or Fake?</div>
+        <div class="instructions">Guess whether the product is original or fake!</div>
+        <div class="card" id="card">
+            <img src="" alt="Product Image" id="productImage">
+        </div>
+        <div class="buttons">
+            <button class="original" onclick="checkAnswer('original')">Original</button>
+            <button class="fake" onclick="checkAnswer('fake')">Fake</button>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="footer-center">© 2024 Original or Fake Game. All rights reserved.</div>
+        <div class="footer-links">
+            <a href="#" onclick="showPrivacyPolicy()">Privacy Policy</a>
+            <a href="#" onclick="showStatistics()">Statistics</a>
+            <a href="/leaderboard">Leaderboard</a> <!-- Direct link to leaderboard.html -->
+        </div>
+    </div>
+    <script>
+
+        let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || { points: 0 };
+
+        let userCorrect = parseInt(localStorage.getItem('userCorrect')) || 0;
+        let userWrong = parseInt(localStorage.getItem('userWrong')) || 0;
+        let countryCorrect = parseInt(localStorage.getItem('countryCorrect')) || 0;
+        let countryWrong = parseInt(localStorage.getItem('countryWrong')) || 0;
+        let userCountry = localStorage.getItem('userCountry') || '';
+
+        async function getCountry() {
+            if (!userCountry) {
+                try {
+                    const response = await axios.get('https://ipapi.co/json/');
+                    userCountry = response.data.country_name;
+                    localStorage.setItem('userCountry', userCountry);
+                } catch (error) {
+                    console.error('Error fetching the country:', error);
+                }
+            }
+        }
+
+        function loadRandomImage() {
+            const randomType = Math.floor(Math.random() * 2) + 1; // Generate random number between 1 and 2
+            const type = (randomType === 1) ? 'original' : 'fake'; // Choose 'original' for 1, 'fake' for 2
+
+            fetch(`/product-images/${type}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    document.getElementById('productImage').src = imageUrl;
+                })
+                .catch(error => {
+                    console.error('Error fetching image:', error);
+                    alert('Error fetching image. Please try again later.');
+                });
+        }
+
+        function checkAnswer(choice) {
+            const imageSrc = document.getElementById('productImage').src;
+            const productName = imageSrc.split('/').pop();
+            const isOriginal = productName.startsWith('original-');
+
+            let correct = (choice === 'original' && isOriginal) || (choice === 'fake' && !isOriginal);
+
+            let globalCorrect = parseInt(localStorage.getItem('globalCorrect')) || 0;
+            let globalWrong = parseInt(localStorage.getItem('globalWrong')) || 0;
+
+            // Update user statistics
+            if (correct) {
+                globalCorrect++
+                userCorrect++;
+                countryCorrect++;
+            } else {
+                userWrong++;
+                countryWrong++;
+                globalWrong++
+            }
+
+            // Save user statistics
+            localStorage.setItem('userCorrect', userCorrect);
+            localStorage.setItem('userWrong', userWrong);
+
+            localStorage.setItem('countryCorrect', countryCorrect);
+            localStorage.setItem('countryWrong', countryWrong);
+
+            localStorage.setItem('globalCorrect', globalCorrect);
+            localStorage.setItem('globalWrong', globalWrong);
+
+
+            // Display notification
+            const notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            notification.style.backgroundColor = correct ? 'green' : 'red';
+            notification.innerText = correct ? 'You were correct!' : 'You were wrong!';
+
+            // Animate card
+            const card = document.getElementById('card');
+            const rotation = choice === 'original' ? 'rotate(-15deg)' : 'rotate(15deg)';
+            const translation = choice === 'original' ? 'translateX(-1000px)' : 'translateX(1000px)';
+            card.style.transform = `${rotation} ${translation}`;
+            card.style.opacity = '0';
+
+            // Reset after animation
+            setTimeout(() => {
+                notification.style.display = 'none';
+                card.style.transform = 'translateX(0) rotate(0deg)';
+                card.style.opacity = '1';
+                // Load a new random image
+                loadRandomImage();
+            }, 1000);
+        }
+
+        function showPrivacyPolicy() {
+            alert("Privacy Policy: Your data is private and secure.");
+        }
+
+        function showStatistics() {
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="title">Statistics</div>
+                    <div class="statistics-container">
+                        <div class="chart-container">
+                            <div class="instructions">Your Performance</div>
+                            <canvas id="userChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <div class="instructions">Country Performance (${userCountry})</div>
+                            <canvas id="countryChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <div class="instructions">Global Performance</div>
+                            <canvas id="globalChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-button">
+                        <button class="back-button" onclick="window.location.reload()">Back to Game</button>
+                    </div>
+                </div>
+            `;
+            renderCharts();
+        }
+
+        function renderCharts() {
+            const ctxUser = document.getElementById('userChart').getContext('2d');
+            const ctxCountry = document.getElementById('countryChart').getContext('2d');
+            const ctxGlobal = document.getElementById('globalChart').getContext('2d');
+
+            const globalCorrect = parseInt(localStorage.getItem('globalCorrect')) || 0;
+            const globalWrong = parseInt(localStorage.getItem('globalWrong')) || 0;
+
+            new Chart(ctxUser, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Correct', 'Wrong'],
+                    datasets: [{
+                        data: [userCorrect, userWrong],
+                        backgroundColor: ['#4caf50', '#f44336'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                }
+            });
+
+            new Chart(ctxCountry, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Correct', 'Wrong'],
+                    datasets: [{
+                        data: [countryCorrect, countryWrong],
+                        backgroundColor: ['#4caf50', '#f44336'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                }
+            });
+
+            new Chart(ctxGlobal, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Correct', 'Wrong'],
+                    datasets: [{
+                        data: [globalCorrect, globalWrong],
+                        backgroundColor: ['#4caf50', '#f44336'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                }
+            });
+        }
+
+        // Load the first random image on page load and get the user's country
+        // Fetch product images filenames on page load
+        window.onload = async () => {
+            loadRandomImage();
+            getCountry();
+        };
+
+    </script>
+</body>
+</html>
