@@ -168,6 +168,8 @@
     </div>
     <script>
 
+        var sigmaType;
+
         let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || { points: 0 };
 
         let userCorrect = parseInt(localStorage.getItem('userCorrect')) || 0;
@@ -188,11 +190,15 @@
             }
         }
 
-        function loadRandomImage() {
-            const randomType = Math.floor(Math.random() * 2) + 1; // Generate random number between 1 and 2
-            const type = (randomType === 1) ? 'original' : 'fake'; // Choose 'original' for 1, 'fake' for 2
+        function getRandomType() {
+            let randomType = Math.floor(Math.random() * 2); // Generates 0 or 1
+            let type = (randomType === 0) ? 'original' : 'fake'; // Assign 'original' for 0, 'fake' for 1
+            return type;
+        }
 
-            fetch(`/product-images/${type}`)
+        function loadRandomImage() {
+            sigmaType = getRandomType();
+            fetch(`/product-images/${sigmaType}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -210,11 +216,8 @@
         }
 
         function checkAnswer(choice) {
-            const imageSrc = document.getElementById('productImage').src;
-            const productName = imageSrc.split('/').pop();
-            const isOriginal = productName.startsWith('original-');
 
-            let correct = (choice === 'original' && isOriginal) || (choice === 'fake' && !isOriginal);
+            let correct = (choice === sigmaType);
 
             let globalCorrect = parseInt(localStorage.getItem('globalCorrect')) || 0;
             let globalWrong = parseInt(localStorage.getItem('globalWrong')) || 0;
