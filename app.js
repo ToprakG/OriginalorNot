@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const getProductImages = require('./hello-world/hello-world.js'); // Assuming it's in the same directory
 
 const app = express();
 const port = 3000;
@@ -22,17 +23,7 @@ app.get('/leaderboard', (req, res) => {
 app.use('/products', express.static(path.join(__dirname, 'products')));
 
 // Endpoint to get product image filenames
-app.get('/product-images', (req, res) => {
-    const directoryPath = path.join(__dirname, 'products');
-    fs.readdir(directoryPath, (err, files) => {
-        if (err) {
-            return res.status(500).json({ error: 'Unable to scan directory' });
-        }
-        // Filter only image files (optional)
-        const imageFiles = files.filter(file => /\.(jpg|jpeg|png|gif)$/.test(file));
-        res.json({ productImages: imageFiles });
-    });
-});
+app.get('/product-images', getProductImages);
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {
