@@ -10,7 +10,7 @@ app.use(express.static(__dirname));
 
 // Serve game.html on the root route
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'game.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Serve leaderboard.html on the /leaderboard route
